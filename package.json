@@ -1,0 +1,25 @@
+{
+    "name": "nse-bse-scraper",
+    "version": "1.0.0",
+    "type": "module",
+    "description": "Apify Actor to scrape NSE India and BSE India stock exchange data",
+    "author": "Developer",
+    "license": "Apache-2.0",
+    "main": "dist/main.js",
+    "scripts": {
+        "start": "node dist/main.js",
+        "build": "tsc",
+        "dev": "tsc --watch"
+    },
+    "dependencies": {
+        "apify": "^3.1.0",
+        "crawlee": "^3.9.0"
+    },
+    "devDependencies": {
+        "@apify/tsconfig": "^0.1.0",
+        "typescript": "^5.4.0"
+    },
+    "engines": {
+        "node": ">=20.0.0"
+    }
+}

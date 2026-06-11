@@ -1,0 +1,41 @@
+{
+    "title": "NSE & BSE Market Data Scraper",
+    "description": "Collect live market data from NSE India and BSE India using confirmed JSON endpoints.",
+    "type": "object",
+    "schemaVersion": 1,
+    "required": ["dataType", "source"],
+    "properties": {
+        "dataType": {
+            "title": "Data Type",
+            "description": "Choose the market data category to collect.",
+            "type": "string",
+            "enum": ["index", "equity", "market-stats"],
+            "default": "index",
+            "editor": "select"
+        },
+        "source": {
+            "title": "Exchange",
+            "description": "Choose NSE, BSE, or both exchanges.",
+            "type": "string",
+            "enum": ["nse", "bse", "both"],
+            "default": "both",
+            "editor": "select"
+        },
+        "symbols": {
+            "title": "Symbols or BSE Scrip Codes",
+            "description": "Equity symbols to collect, such as RELIANCE, INFY, HDFCBANK, or a BSE scrip code like 500325. Used only for equity data.",
+            "type": "array",
+            "editor": "stringList",
+            "default": ["RELIANCE"]
+        },
+        "maxResults": {
+            "title": "Max Results",
+            "description": "Maximum number of records per exchange/category.",
+            "type": "integer",
+            "default": 10,
+            "minimum": 1,
+            "maximum": 500,
+            "editor": "number"
+        }
+    }
+}

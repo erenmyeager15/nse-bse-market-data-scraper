@@ -1,0 +1,91 @@
+{
+    "actorSpecification": 1,
+    "name": "nse-bse-scraper",
+    "title": "NSE & BSE Market Data Scraper",
+    "description": "Extract live Indian stock exchange data from confirmed NSE and BSE JSON endpoints: indices, equity quotes, gainers, losers, and most-active securities.",
+    "version": "1.0",
+    "categories": ["BUSINESS", "DEVELOPER_TOOLS"],
+    "dockerfile": "Dockerfile",
+    "input": "../INPUT_SCHEMA.json",
+    "storages": {
+        "dataset": {
+            "actorSpecification": 1,
+            "views": {
+                "records": {
+                    "title": "Market Data Records",
+                    "transformation": {
+                        "fields": [
+                            "source",
+                            "recordType",
+                            "symbol",
+                            "name",
+                            "price",
+                            "change",
+                            "changePercent",
+                            "volume",
+                            "value",
+                            "turnover",
+                            "open",
+                            "high",
+                            "low",
+                            "previousClose",
+                            "fiftyTwoWeekHigh",
+                            "fiftyTwoWeekLow",
+                            "marketCap",
+                            "peRatio",
+                            "pbRatio",
+                            "eps",
+                            "sector",
+                            "industry",
+                            "isin",
+                            "category",
+                            "exchangeTimestamp",
+                            "scrapedAt",
+                            "url"
+                        ]
+                    },
+                    "display": {
+                        "component": "table",
+                        "properties": {
+                            "source": { "label": "Exchange", "format": "text" },
+                            "recordType": { "label": "Type", "format": "text" },
+                            "symbol": { "label": "Symbol", "format": "text" },
+                            "name": { "label": "Name", "format": "text" },
+                            "price": { "label": "Price", "format": "number" },
+                            "change": { "label": "Change", "format": "number" },
+                            "changePercent": { "label": "Change %", "format": "number" },
+                            "volume": { "label": "Volume", "format": "number" },
+                            "value": { "label": "Value", "format": "number" },
+                            "turnover": { "label": "Turnover", "format": "number" },
+                            "exchangeTimestamp": { "label": "Exchange Time", "format": "text" },
+                            "scrapedAt": { "label": "Scraped At", "format": "date" },
+                            "url": { "label": "Source URL", "format": "link" }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "pricingInfo": {
+        "pricingModel": "PAY_PER_EVENT",
+        "pricingPerEvent": {
+            "actorChargeEvents": {
+                "result-scraped": {
+                    "eventTitle": "Result scraped",
+                    "eventDescription": "Charged once for each real market data record successfully saved to the dataset.",
+                    "eventPriceUsd": 0.002,
+                    "isPrimaryEvent": true,
+                    "isOneTimeEvent": false
+                }
+            }
+        }
+    },
+    "defaultRunOptions": {
+        "build": "latest",
+        "memoryMbytes": 512,
+        "timeoutSecs": 3600
+    },
+    "minMemoryMbytes": 256,
+    "maxMemoryMbytes": 2048,
+    "webScraper": false
+}
