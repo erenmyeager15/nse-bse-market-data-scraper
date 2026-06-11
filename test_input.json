@@ -1,0 +1,6 @@
+{
+  "dataType": "equity",
+  "source": "both",
+  "symbols": ["RELIANCE", "500325", "INFY", "532540"],
+  "maxResults": 5
+}

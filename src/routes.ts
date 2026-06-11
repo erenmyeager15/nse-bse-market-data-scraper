@@ -7,7 +7,7 @@ type JsonObject = Record<string, unknown>;
 const NSE_BASE_URL = 'https://www.nseindia.com';
 const BSE_API_BASE_URL = 'https://api.bseindia.com/BseIndiaAPI/api';
 const BSE_REALTIME_BASE_URL = 'https://api.bseindia.com/RealTimeBseIndiaAPI/api';
-const REQUEST_TIMEOUT_MS = 20000;
+const REQUEST_TIMEOUT_MS = 30000;
 const USER_AGENT =
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 Safari/537.36';
 
@@ -54,7 +54,22 @@ export async function collectRecords(input: ActorInput | null): Promise<MarketRe
         }
     }
 
-    return deduplicateRecords(records).filter(isUsableRecord);
+    const deduped = deduplicateRecords(records).filter(isUsableRecord);
+    enrichNseNamesFromBse(deduped);
+    return deduped;
+}
+
+/** When both exchanges return the same symbol, fill a missing NSE company name from the BSE record. */
+function enrichNseNamesFromBse(records: MarketRecord[]): void {
+    const bseNameBySymbol = new Map<string, string>();
+    for (const r of records) {
+        if (r.source === 'bse' && r.symbol && r.name) bseNameBySymbol.set(r.symbol, r.name);
+    }
+    for (const r of records) {
+        if (r.source === 'nse' && !r.name && r.symbol && bseNameBySymbol.has(r.symbol)) {
+            r.name = bseNameBySymbol.get(r.symbol) ?? null;
+        }
+    }
 }
 
 export function isUsableRecord(record: MarketRecord): boolean {
@@ -265,11 +280,18 @@ async function fetchNseMostActiveEntries(index: 'value' | 'volume'): Promise<Arr
     return toArray(data.data).map((row) => ({ row, category: index, timestamp }));
 }
 
+function nseCompanyName(row: JsonObject): string | null {
+    const direct = firstString(row, ['companyName', 'metaCompanyName', 'meta_companyName']);
+    if (direct) return direct;
+    const meta = asObject(row.meta);
+    return meta ? firstString(meta, ['companyName', 'name']) : null;
+}
+
 function mapNseMover(row: JsonObject, recordType: RecordType, category: string, timestamp: string | null): MarketRecord {
     const symbol = (firstString(row, ['symbol', 'identifier']) ?? 'UNKNOWN').toUpperCase();
     return {
         ...baseRecord('nse', recordType, symbol),
-        name: firstString(row, ['companyName', 'metaCompanyName']),
+        name: nseCompanyName(row),
         series: firstString(row, ['series']),
         price: firstNumber(row, ['ltp', 'lastPrice']),
         change: firstNumber(row, ['net_price', 'change']),
@@ -293,6 +315,8 @@ function mapNseEquity(row: JsonObject, category: string, timestamp: string | nul
     return {
         ...mapNseMover(row, 'equity', category, timestamp),
         recordType: 'equity',
+        // The internal feed-bucket name ("NIFTY"/"value"/"allSec") is noise for a single equity.
+        category: null,
     };
 }
 
@@ -398,7 +422,11 @@ async function fetchBseEquities(symbols: string[], maxResults: number): Promise<
             industry: firstString(company, ['IndustryNew', 'Industry']),
             isin: firstString(company, ['ISIN']) ?? resolved.isin,
             category: firstString(companyName, ['Category']),
-            url: resolved.url,
+            url: resolved.url ?? buildBseUrl(
+                firstString(companyName, ['FullN', 'SeriesN']) ?? resolved.name,
+                firstString(company, ['SecurityId']) ?? resolved.symbol,
+                resolved.code,
+            ),
         };
 
         records.push(record);
@@ -409,6 +437,16 @@ async function fetchBseEquities(symbols: string[], maxResults: number): Promise<
 
 async function fetchBseJsonObject(url: string): Promise<JsonObject> {
     return fetchJson<JsonObject>(url, bseHeaders, true);
+}
+
+/** Build a canonical BSE stock-price URL (matches the SEO format) from name + security id + code. */
+function buildBseUrl(name: string | null, securityId: string | null, code: string): string | null {
+    if (!code) return null;
+    const slug = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    if (name && securityId) {
+        return `https://www.bseindia.com/stock-share-price/${slug(name)}/${slug(securityId)}/${code}/`;
+    }
+    return `https://www.bseindia.com/stock-share-price/x/x/${code}/`;
 }
 
 async function resolveBseScrip(symbol: string): Promise<{ code: string; symbol: string | null; name: string | null; isin: string | null; url: string | null } | null> {
